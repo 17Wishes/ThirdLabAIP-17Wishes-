@@ -67,7 +67,7 @@ int compare(unsigned short *num1, int parts_num1, unsigned short *num2, int part
     int j = parts_num2 - 1;
 
     while (i > 1 && num1[i] == 0) {i--;}
-    while (j > 1 && num1[j] == 0) {j--;}
+    while (j > 1 && num2[j] == 0) {j--;}
 
     if (i > j) {return 1;}
     if (i < j) {return -1;}
@@ -120,21 +120,19 @@ int sub(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_nu
     if (compare_result > 0) {
         return diff(num1, parts_num1, num2, parts_num2);
     }
-    else if (compare_result == 0) {
+    if (compare_result == 0) {
         num1[0] = 0;
         num1[1] = 0;
         return 2;
     }
-    else {
-        int new_len = diff(num2, parts_num2, num1, parts_num1);
+    int new_len = diff(num2, parts_num2, num1, parts_num1);
 
-        for (int i = 1 ;i < new_len; i++) {
-            num1[i] = num2[i];
-        }
-
-        num1[0] = (num1[0] == 0) ? 1 : 0;
-        return new_len;
+    for (int i = 1 ;i < new_len; i++) {
+        num1[i] = num2[i];
     }
+
+    num1[0] = (num1[0] == 0) ? 1 : 0;
+    return new_len;
 }
 
 int add(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2) {
@@ -144,14 +142,47 @@ int add(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_nu
     return len;
 }
 
+unsigned short * multiply(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
+    int size = parts_num1  + parts_num2;
+
+    unsigned short *result = calloc(size, sizeof (unsigned short));
+
+    result[0] = num1[0] == num2[0] ? 0 : 1;
+
+    for (int i = 1; i < parts_num1; i++) {
+        unsigned int carry = 0;
+        for (int j = 1; j < parts_num2; j++) {
+            unsigned long long cur = (unsigned long long)num1[i] * num2[j] + result[i + j - 1] + carry;
+            result[i + j - 1] = (unsigned short)(cur % BASE);
+            carry = cur / BASE;
+        }
+        result[i + parts_num2 - 1] += carry;
+    }
+
+    int true_size = size;
+    while (true_size > 2 && result[true_size - 1] == 0) {
+        true_size--;
+    }
+
+    if (true_size == 2 && result[1] == 0) {
+        result[0] = 0;
+    }
+
+    *out_size = true_size;
+    return result;
+}
+
 int main(void) {
-    char num[] = "-3";
+    char num[] = "3";
     size_t len = strlen(num);
-    int size = (len / 4) + 2;
+    int size = (len / 4) + 2 + 1;
     unsigned short *digits = malloc(size * sizeof(unsigned short));
     splitter(num, digits, size);
     test_print(digits, size);
-    unsigned short test_num[2] = {0, 5  };
-    size = add(digits, size, test_num, 2);
+    unsigned short test_num[3] = {0, 0, 1};
+    size = add(digits, size, test_num, 3);
+    test_print(digits, size);
+    unsigned short test_num2[2] = {0, 3000};
+    digits = multiply(digits, size, test_num2, 2, &size);
     test_print(digits, size);
 }
