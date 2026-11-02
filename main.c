@@ -14,7 +14,7 @@ void test_print(uint16_t *massive, int num) {
     printf("-----\n");
 }
 
-void printer(unsigned short* num, int size) {
+void printer(unsigned short* num, int size) { //дописать функцию
     if (num[0] == 1) {
         printf("-");
     }
@@ -172,6 +172,48 @@ unsigned short * multiply(unsigned short *num1, int parts_num1, unsigned short *
     return result;
 }
 
+unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, int *out_size) {
+    char flag = 0;
+    if (exp % 2 == 1 && num1[0] == 1) {
+        flag = 1;
+    }
+    int res_size;
+    unsigned short *res  = malloc(2 * sizeof (unsigned short));
+    res[0] = 0;
+    res[1] = 1;
+
+    int size = parts_num1;
+    unsigned short *num = malloc(size * sizeof (unsigned short));
+    for (int i = 0; i < parts_num1; i++) {
+        num[i] = num1[i];
+    }
+    num[0] = 0;
+
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            int new_size = 0;
+            unsigned short *new_num = multiply(res, res_size, num, size, &new_size);
+            free(res);
+            res = new_num;
+        }
+
+        exp /= 2;
+        if (exp > 0) {
+            int next_size = 0;
+            unsigned short *next_num = multiply(num, size, num, size, &next_size);
+            free(num);
+            num = next_num;
+        }
+    }
+
+    if (flag == 1) {
+        res[0] = 1;
+    }
+
+    *out_size = size;
+    return res;
+}
+
 int main(void) {
     char num[] = "3";
     size_t len = strlen(num);
@@ -180,9 +222,6 @@ int main(void) {
     splitter(num, digits, size);
     test_print(digits, size);
     unsigned short test_num[3] = {0, 0, 1};
-    size = add(digits, size, test_num, 3);
-    test_print(digits, size);
-    unsigned short test_num2[2] = {0, 3000};
-    digits = multiply(digits, size, test_num2, 2, &size);
+    digits = power(digits, size, 3, &size);
     test_print(digits, size);
 }
