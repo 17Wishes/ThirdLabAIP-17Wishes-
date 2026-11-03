@@ -182,6 +182,11 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
     res[0] = 0;
     res[1] = 1;
 
+    if (exp == 0) {
+        *out_size = 2;
+        return res;
+    }
+
     int size = parts_num1;
     unsigned short *num = malloc(size * sizeof (unsigned short));
     for (int i = 0; i < parts_num1; i++) {
@@ -214,14 +219,65 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
     return res;
 }
 
+unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) {
+    int res_size = 2;
+    unsigned short *res = malloc(3 * sizeof (unsigned short));
+    unsigned int n = num1[1];
+    res[0] = 0;
+    res[1] = 1;
+    if (num1[0] == 1) {
+        printf("Факториал отрицательного числа неопределён!\n");
+        *out_size = res_size;
+        return res;
+    }
+    int too_big = 0;
+    for (int i = 2; i < parts_num1; i++) {
+        if (num1[i] != 0) {
+            too_big = 1;
+            break;
+        }
+    }
+    if (n > 810 || too_big) {
+        printf("Число для вычисления слишком большое!\n");
+        *out_size = res_size;
+        return res;
+    }
+    printf("%d\n", n);
+    for (int i = 2; i <= n; i++) {
+        unsigned short mult[3];
+        int size = 0;
+
+        mult[0] = 0;
+        if (i < BASE) {
+            mult[1] = (unsigned short)i;
+            size = 2;
+        } else {
+            mult[1] = (unsigned short)(i % BASE);
+            mult[2] = (unsigned short)(i / BASE);
+            size = 3;
+        }
+
+        int new_size = 0;
+        unsigned short *new_num = multiply(res, res_size, mult, size, &new_size);
+
+        free(res);
+        res = new_num;
+        res_size = new_size;
+    }
+
+    *out_size = res_size;
+    return res;
+}
+
 int main(void) {
-    char num[] = "3";
+    char num[] = "65537";
     size_t len = strlen(num);
-    int size = (len / 4) + 2 + 1;
+    int size = (len / 4) + 2;
     unsigned short *digits = malloc(size * sizeof(unsigned short));
     splitter(num, digits, size);
     test_print(digits, size);
-    unsigned short test_num[3] = {0, 0, 1};
-    digits = power(digits, size, 3, &size);
+    unsigned short test_num[3] = {0,100, 0};
+    digits = factorial(test_num, 3, &size);
+    //digits = power(digits, size, 3, &size);
     test_print(digits, size);
 }
