@@ -81,65 +81,79 @@ int compare(unsigned short *num1, int parts_num1, unsigned short *num2, int part
     return 0;
 }
 
-int sum(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2) { //проблема переполнения
+unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int * out_size) { //проблема переполнения
+    int res_size = (parts_num1 > parts_num2) ? parts_num1 : parts_num2;
+    res_size+= 1;
+    unsigned short * res = calloc(res_size, sizeof (unsigned short));
+    res[0] = num1[0];
     unsigned short carry = 0;
-    int i = 1;
-    while (i < parts_num1 || i < parts_num2 || carry > 0) {
+
+    for (int i = 1; i < res_size; i++) {
         unsigned short d1 = (i < parts_num1) ? num1[i] : 0;
         unsigned short d2 = (i < parts_num2) ? num2[i] : 0;
         unsigned int sum = d1 + d2 + carry;
 
-        num1[i] = (unsigned short)(sum % BASE);
-
+        res[i] = (unsigned short)(sum % BASE);
         carry = sum / BASE;
-        i++;
     }
-    return parts_num1;
+    if (res_size > 2 && res[res_size - 1] == 0) {
+        res_size--;
+    }
+    *out_size = res_size;
+    return res;
 }
 
-int diff(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2) {
+unsigned short * diff(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
+    int res_size = (parts_num1 > parts_num2)? parts_num1 : parts_num2;
+    unsigned short *res = calloc(res_size, sizeof (unsigned short));
     unsigned short borrow = 0;
-    for (int i = 1; i < parts_num1; i++) {
+    for (int i = 1; i < res_size; i++) {
+        unsigned short d1 = (i < parts_num1) ? num1[i] : 0;
         unsigned short d2 = (i < parts_num2) ? num2[i] : 0;
-        int diff = num1[i] - d2 - borrow;
+        int diff = d1 - d2 - borrow;
         if (diff < 0) {
             diff += BASE;
             borrow = 1;
         } else {borrow = 0;}
-        num1[i] = (unsigned short)diff;
+        res[i] = (unsigned short)diff;
     }
-
-    return parts_num1;
+    while (res_size > 2 && res[res_size - 1] == 0) {
+        res_size--;
+    }
+    *out_size = res_size;
+    return res;
 }
 
-int sub(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2) {
-     if (num1[0] != num2[0]) {
-         return sum(num1, parts_num1, num2, parts_num2);
-     }
-    int compare_result = compare(num1, parts_num1, num2, parts_num2);
-    if (compare_result > 0) {
-        return diff(num1, parts_num1, num2, parts_num2);
+unsigned short* sub(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
+    int sign_is_equal = (num1[0] == num2[0]) ? 1 : 0;
+    if (!sign_is_equal) {
+        return sum(num1, parts_num1, num2, parts_num2, out_size);
     }
-    if (compare_result == 0) {
-        num1[0] = 0;
-        num1[1] = 0;
-        return 2;
+    if (compare(num1, parts_num1, num2, parts_num2) == 1) {
+        return diff(num1, parts_num1, num2, parts_num2, out_size);
     }
-    int new_len = diff(num2, parts_num2, num1, parts_num1);
-
-    for (int i = 1 ;i < new_len; i++) {
-        num1[i] = num2[i];
+    if(compare(num1, parts_num1, num2, parts_num2) == -1) {
+        return diff(num2, parts_num2, num1, parts_num1, out_size);
     }
-
-    num1[0] = (num1[0] == 0) ? 1 : 0;
-    return new_len;
+    unsigned short * res = calloc(2, sizeof (unsigned short));
+    *out_size = 0;
+    return res;
 }
 
-int add(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2) {
-    num2[0] = num2[0] == 0 ? 1 : 0;
-    int len = sub(num1, parts_num1, num2, parts_num2);
-    num2[0] = (num2[0] == 0) ? 1 : 0;
-    return len;
+unsigned short * add(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
+    int sign_is_equal = (num1[0] == num2[0]) ? 1 : 0;
+    if (sign_is_equal) {
+        return sum(num1, parts_num1, num2, parts_num2, out_size);
+    }
+    if (compare(num1, parts_num1, num2, parts_num2) == 1) {
+        return diff(num1, parts_num1, num2, parts_num2, out_size);
+    }
+    if(compare(num1, parts_num1, num2, parts_num2) == -1) {
+        return diff(num2, parts_num2, num1, parts_num1, out_size);
+    }
+    unsigned short * res = calloc(2, sizeof (unsigned short));
+    *out_size = 0;
+    return res;
 }
 
 unsigned short * multiply(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
@@ -269,15 +283,43 @@ unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) 
     return res;
 }
 
+void devide_by_two(unsigned short *num, int parts_num1) {
+    unsigned int carry = 0;
+    for (int i = parts_num1 - 1; i >= 1; i++) {
+        int cur = (carry * BASE) + num[i];
+        num[i] = (unsigned short)(cur / 2);
+        carry = cur % 2;
+    }
+}
+/**
+unsigned short * row(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
+    unsigned short *res = malloc(2 * sizeof (unsigned short));
+    int res_size = 2;
+    if (parts_num1 > 1000 || parts_num2 > 1000) {
+        printf("Слишком большие числа!\n");
+        *out_size = 2;
+        return res;
+    }
+
+    //Реализовать функцию сравнения, т.к. если число A > B, то начало отрезка больше его конца и их надо поменять местами
+
+    unsigned short *num1copy = malloc(2 * sizeof (unsigned short));
+    num1copy = num1;
+    int size_num_copy = add(num1copy, 2, num2, parts_num2);
+
+
+
+}
+**/
 int main(void) {
-    char num[] = "65537";
+    char num[] = "-2";
     size_t len = strlen(num);
     int size = (len / 4) + 2;
     unsigned short *digits = malloc(size * sizeof(unsigned short));
     splitter(num, digits, size);
     test_print(digits, size);
-    unsigned short test_num[3] = {0,100, 0};
-    digits = factorial(test_num, 3, &size);
+    unsigned short test_num[3] = {1,100, 0};
+    digits = add(digits, size, test_num, 3, &size);
     //digits = power(digits, size, 3, &size);
     test_print(digits, size);
 }
